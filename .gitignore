@@ -1,0 +1,7 @@
+input.txt
+lex.yy.c
+parser
+parser.tab.c
+parser.tab.h
+test.c
+test1.txt
