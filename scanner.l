@@ -49,7 +49,7 @@ dec_fp_lit   ({digit}+\.{digit}*(_?{digit})*|\.{digit}+(_?{digit})*|{digit}+){ex
 hex_fp_lit   {hex_prefix}{hexdigit}+\.?{hexdigit}*[pP][+-]?{digit}+{fp_suffix}?
 
 /* char & string */
-string_char  ([^"\\\n]|\\.)
+string_char  ([^|"\\\n]|\\.)
 char_char    ([^'\\\n]|\\.)
 
 %%
@@ -58,6 +58,8 @@ char_char    ([^'\\\n]|\\.)
 
 "//"[^\n]*
 "/*"([^*]|\*+[^/*])*"*/"
+
+"\""([^\"\\]|\\.)*"\"" { RETURN(T_TEXT_STRING); }
 
 "true"      { RETURN(T_TRUE); }
 "false"     { RETURN(T_FALSE); }
@@ -130,7 +132,28 @@ char_char    ([^'\\\n]|\\.)
 "uses"     { RETURN(T_USES); }         
 "with"     { RETURN(T_WITH); }
 
-{idstart}{idpart}*            { RETURN_STR(T_IDENTIFIER); }
+"IOException"					{ RETURN(T_EXCEPTION); }
+"FileNotFoundException"			{ RETURN(T_EXCEPTION); }
+"EOFException"					{ RETURN(T_EXCEPTION); }
+"SQLException"					{ RETURN(T_EXCEPTION); }
+"ClassNotFoundException"		{ RETURN(T_EXCEPTION); }
+"InterruptedException"			{ RETURN(T_EXCEPTION); }
+"NullPointerException"			{ RETURN(T_EXCEPTION); }
+"ArrayIndexOutOfBoundsExceptio"	{ RETURN(T_EXCEPTION); }
+"ArithmeticException"			{ RETURN(T_EXCEPTION); }
+"IllegalArgumentException"		{ RETURN(T_EXCEPTION); }
+"NumberFormatException"			{ RETURN(T_EXCEPTION); }
+"ClassCastException"			{ RETURN(T_EXCEPTION); }
+"UnsupportedOperationException"	{ RETURN(T_EXCEPTION); }
+"OutOfMemoryError"				{ RETURN(T_EXCEPTION); }
+"StackOverflowError"			{ RETURN(T_EXCEPTION); }
+"NoClassDefFoundError"			{ RETURN(T_EXCEPTION); }
+"VirtualMachineError"			{ RETURN(T_EXCEPTION); }
+"Exception"						{ RETURN(T_EXCEPTION); }
+
+{idstart}{idpart}*            { 
+								//printf("%s\n", yytext); 
+								RETURN_STR(T_IDENTIFIER); }
 {hex_int_lit}{int_suffix}?    { RETURN_STR(T_INT_LITERAL); }
 {bin_int_lit}{int_suffix}?    { RETURN_STR(T_INT_LITERAL); }
 {oct_int_lit}{int_suffix}?    { RETURN_STR(T_INT_LITERAL); }
@@ -191,7 +214,8 @@ char_char    ([^'\\\n]|\\.)
 "|"  { RETURN('|'); }  
 "^" { RETURN('^'); }  
 "%" { RETURN('%'); }
-"\"" { RETURN('\"'); }
+#"\"" { RETURN('\"'); }
+#"\'" { RETURN('\''); }
 
 .               { 
 					printf("Лексическая ошибка: Неизвестный символ '%s' в строке %d\n", yytext, line_num);

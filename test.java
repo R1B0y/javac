@@ -3,15 +3,14 @@ import java.io.*;
 
 public class ParserTest {
 
-a = 123;
-
 
     public static void main(String[] args) {
         ParserTest test = new ParserTest();
-        test.run();
+        test.run(a);
     }
 
     public void run() {
+        a = 123;
         System.out.println("Starting ParserTest...");
 
         List<String> inputs = Arrays.asList("Hello", "World", null, "Java", "Parser");
@@ -26,7 +25,7 @@ a = 123;
         }
 
         Map<String, Integer> counts = countOccurrences(inputs);
-        counts.forEach((k, v) -> System.out.println(k + ": " + v));
+        //counts.forEach((k, v) -> System.out.println(k + ": " + v));
 
         NestedClass nested = new NestedClass();
         nested.printMessage();
@@ -41,7 +40,7 @@ a = 123;
             e.printStackTrace();
         }
 
-        GenericContainer<Integer> container = new GenericContainer<>(42);
+        //GenericContainer<Integer> container = new GenericContainer<>(42);
         System.out.println("Generic value: " + container.getValue());
 
         try {
@@ -119,7 +118,7 @@ a = 123;
 
     // Generic class
     static class GenericContainer<T> {
-        private T value;
+        // private T value;
 
         public GenericContainer(T value) {
             this.value = value;
@@ -163,7 +162,7 @@ a = 123;
         SATURDAY("Weekend"),
         SUNDAY("Weekend");
 
-        private String description;
+        String description;
 
         Day(String description) {
             this.description = description;

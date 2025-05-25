@@ -101,24 +101,15 @@ type_decl
     ;
 
 class_decl
-    : modifiers_opt T_CLASS T_IDENTIFIER '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_CLASS T_IDENTIFIER '<' types_or_voids '>'  '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_CLASS T_IDENTIFIER T_IMPLEMENTS interfaces '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_CLASS T_IDENTIFIER '<' types_or_voids '>' T_IMPLEMENTS interfaces '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_INTERFACE T_IDENTIFIER '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_INTERFACE T_IDENTIFIER '<' types_or_voids '>'  '{' class_body_decl_list_opt '}'
+    : class_modifiers_opt T_CLASS T_IDENTIFIER '{' class_body_decl_list_opt '}'
     ;
 
-interfaces
-    : interface
-    | interfaces ',' interface
+class_modifiers_opt
+    : /* empty */
+    | class_modifiers_opt class_modifier
     ;
 
-interface
-    : T_IDENTIFIER
-    ;
-
-modifier
+class_modifier
     : T_PUBLIC 
     | T_PRIVATE 
     | T_PROTECTED 
@@ -127,14 +118,6 @@ modifier
     | T_STATIC
     | T_STRICTFP 
     | T_SEALED
-    | T_SYNCHRONIZED 
-    | T_NATIVE 
-    | T_DEFAULT
-    ;
-
-modifiers_opt
-    : /* empty */
-    | modifiers_opt modifier
     ;
 
 class_body_decl_list_opt
@@ -151,7 +134,7 @@ class_body_decl
     ;
 
 field_decl
-    : type var_declarators ';' 
+    : type var_declarators ';'
     ;
 
 var_declarators
@@ -174,39 +157,29 @@ var_initializer
     ;
 
 method_decl
-    : modifiers_opt method_header ';'
-    | modifiers_opt method_header method_body
-    | type T_IDENTIFIER '(' formal_param_list_opt ')' ';'
-    | type T_IDENTIFIER '(' formal_param_list_opt ')' method_body
-    | T_IDENTIFIER '(' formal_param_list_opt ')' ';'
-    | T_IDENTIFIER '(' formal_param_list_opt ')' method_body
-    | modifiers_opt T_ENUM T_IDENTIFIER '{' method_enum_body '}'
+    : method_modifiers_opt method_header method_body
+    ;
+
+method_modifiers_opt
+    : /* empty */
+    | method_modifiers_opt method_modifier
+    ;
+
+method_modifier
+    : T_PUBLIC 
+    | T_PRIVATE 
+    | T_PROTECTED 
+    | T_ABSTRACT 
+    | T_STATIC 
+    | T_FINAL
+    | T_SYNCHRONIZED 
+    | T_NATIVE 
+    | T_STRICTFP
     ;
 
 method_header
     : type_or_void T_IDENTIFIER '(' formal_param_list_opt ')'
     | type_or_void T_IDENTIFIER '(' formal_param_list_opt ')' T_THROWS T_EXCEPTION
-    | T_IDENTIFIER '(' formal_param_list_opt ')'
-    ;
-
-method_enum_body
-    : enum_consts ';' class_body_decl_list_opt 
-    | ';'
-    ;
-
-enum_consts
-    : enum_const
-    | enum_consts ',' enum_const
-    ;
-
-enum_const
-    : T_IDENTIFIER
-    | T_IDENTIFIER '(' enum_const_params ')'
-    ;
-
-enum_const_params
-    : primary
-    | enum_const_params ',' primary
     ;
 
 formal_param_list_opt
@@ -271,8 +244,6 @@ qualified_name
     | elem_array
     | qualified_name '.' T_IDENTIFIER    { /* concat if desired */ }
     | qualified_name '.' elem_array
-    | T_THIS '.' qualified_name
-    | T_THIS
     ;
 
 primitive_type
@@ -359,7 +330,6 @@ for_update_opt
 
 case
     : T_CASE expression ':' block_statements_opt T_BREAK ';'
-    | T_CASE expression ':'
     ;
 
 cases
@@ -368,7 +338,7 @@ cases
     ;
 
 default_for_switch
-    : T_DEFAULT ':' block_statements_opt
+    : T_DEFAULT expression ':' block_statements_opt
     ;
 
 expression_list
