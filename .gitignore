@@ -6,3 +6,4 @@ parser.tab.h
 test.c
 test1.txt
 parser.output
+build/
