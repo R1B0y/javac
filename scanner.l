@@ -52,12 +52,27 @@ hex_fp_lit   {hex_prefix}{hexdigit}+\.?{hexdigit}*[pP][+-]?{digit}+{fp_suffix}?
 string_char  ([^|"\\\n]|\\.)
 char_char    ([^'\\\n]|\\.)
 
+%x COMMENT
+%x LINE_COMMENT
+
 %%
 [ \t\r\f]+ { append_to_line(yytext); }
 \n    { reset_line(); line_num++; }
 
-"//"[^\n]*
-"/*"([^*]|\*+[^/*])*"*/"
+"/*"                { BEGIN(COMMENT); }
+"/**"               { BEGIN(COMMENT); }
+<COMMENT>{
+    \n              { reset_line(); line_num++; }
+    "*/"            { BEGIN(INITIAL); }
+    .               ; 
+}
+
+"//"                { BEGIN(LINE_COMMENT); }
+<LINE_COMMENT>{
+    \n              { reset_line(); line_num++; BEGIN(INITIAL); }
+    .               ; 
+}
+
 
 "\""([^\"\\]|\\.)*"\"" { RETURN(T_TEXT_STRING); }
 
