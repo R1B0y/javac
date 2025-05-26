@@ -2,9 +2,12 @@
 #include "parser.tab.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "../deser_warn.h"
 
 #define MAX_LINE_LENGTH 1024
 
+DeserWarn deser_warns[MAX_DESER];
+int deser_cnt = 0;
 char line[MAX_LINE_LENGTH];
 int line_pos = 0;
 int line_num = 1;
@@ -20,7 +23,6 @@ void reset_line();
 #define RETURN_STR(tok) ( { append_to_line(yytext); yylval.str = strdup(yytext); return tok; } )
 
 %}
-/* ------------------  Macros ------------------ */
 
 digit        [0-9]
 hexdigit     [0-9A-Fa-f]
@@ -35,7 +37,6 @@ bin_prefix   0[bB]
 
 exp_part     [eE][+-]?{digit}+(_?{digit})*
 
-/* integer */
 hex_int_lit  {hex_prefix}{hexdigit}+(_?{hexdigit})*
 bin_int_lit  {bin_prefix}{bindigit}+(_?{bindigit})*
 oct_int_lit  0{octdigit}+(_?{octdigit})*
@@ -44,11 +45,9 @@ dec_int_lit  {digit}+(_?{digit})*
 int_suffix   [lL]
 fp_suffix    [fFdD]
 
-/* float */
 dec_fp_lit   ({digit}+\.{digit}*(_?{digit})*|\.{digit}+(_?{digit})*|{digit}+){exp_part}?{fp_suffix}?
 hex_fp_lit   {hex_prefix}{hexdigit}+\.?{hexdigit}*[pP][+-]?{digit}+{fp_suffix}?
 
-/* char & string */
 string_char  ([^|"\\\n]|\\.)
 char_char    ([^'\\\n]|\\.)
 
@@ -164,11 +163,17 @@ char_char    ([^'\\\n]|\\.)
 "StackOverflowError"			{ RETURN(T_EXCEPTION); }
 "NoClassDefFoundError"			{ RETURN(T_EXCEPTION); }
 "VirtualMachineError"			{ RETURN(T_EXCEPTION); }
+"ObjectStreamException"			{ RETURN(T_EXCEPTION); }
 "Exception"						{ RETURN(T_EXCEPTION); }
 
-{idstart}{idpart}*            { 
-								//printf("%s\n", yytext); 
-								RETURN_STR(T_IDENTIFIER); }
+"ObjectInputStream"       { add_deser_warn("Создание java.io.ObjectInputStream", line_num); RETURN_STR(T_IDENTIFIER); }
+"XMLDecoder"              { add_deser_warn("Создание java.beans.XMLDecoder", line_num); RETURN_STR(T_IDENTIFIER); }
+"readObject"              { add_deser_warn("Вызов readObject()", line_num); RETURN_STR(T_IDENTIFIER); }
+"readResolve"             { add_deser_warn("Вызов readResolve()", line_num); RETURN_STR(T_IDENTIFIER); }
+"fromXML"                 { add_deser_warn("Вызов XStream#fromXML()", line_num); RETURN_STR(T_IDENTIFIER); }
+"enableDefaultTyping"     { add_deser_warn("ObjectMapper.enableDefaultTyping()", line_num); RETURN_STR(T_IDENTIFIER); }
+{idstart}{idpart}*            { RETURN_STR(T_IDENTIFIER); }
+
 {hex_int_lit}{int_suffix}?    { RETURN_STR(T_INT_LITERAL); }
 {bin_int_lit}{int_suffix}?    { RETURN_STR(T_INT_LITERAL); }
 {oct_int_lit}{int_suffix}?    { RETURN_STR(T_INT_LITERAL); }
@@ -273,6 +278,14 @@ void reset_line() {
 	}
     line_pos = 0;
     line[0] = '\0';  // Очищаем буфер
+}
+
+void add_deser_warn(const char *info, int line) {
+    if (deser_cnt < MAX_DESER) {
+        strncpy(deser_warns[deser_cnt].info, info, sizeof(deser_warns[deser_cnt].info) - 1);
+        deser_warns[deser_cnt].line = line;
+        ++deser_cnt;
+    }
 }
 
 int yywrap() {

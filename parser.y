@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../deser_warn.h"
 
 extern int yylex();
 extern int yyparse();
@@ -15,12 +16,14 @@ int error_pos = 0;
 int error_flag = 0;
 int error_count_point = 0;
 int error_count = 0;
+extern int deser_cnt;
 
 char* category;
 
 void yyerror(const char* s);
 void append_to_line(char *text);
 void reset_line();
+static void print_deser_report(void);
 %}
 
 %union {
@@ -49,9 +52,6 @@ void reset_line();
 %token T_SEALED T_PERMITS T_NON_SEALED T_OPEN T_OPENS T_PROVIDES T_TO T_USES T_WITH
 %token T_EXCEPTION
 
-/* ----------------------------------------------------------------
- *  Precedence & Associativity
- * ----------------------------------------------------------------*/
 %right  '=' T_PLUSEQ T_MINUSEQ T_MULTEQ T_DIVEQ T_MODEQ T_ANDEQ T_OREQ T_XOREQ
 %left   T_OROR
 %left   T_ANDAND
@@ -64,8 +64,6 @@ void reset_line();
 %left   T_LAMBDA
 %nonassoc LOWER_THAN_ELSE
 
-/* Semantic types for selected non‑terminals */
-%type <str> type reference_type qualified_name
 
 %%
 compilation_unit
@@ -74,13 +72,13 @@ compilation_unit
     ;
 
 package_decl_opt
-    : /* empty */
+    : 
     | T_PACKAGE qualified_name ';'
     | error ';' { yyerrok; yyclearin; category = "package_decl_opt"; }
     ;
 
 import_list_opt
-    : /* empty */
+    : 
     | import_list_opt import_decl
     ;
 
@@ -92,7 +90,7 @@ import_decl
     ;
 
 type_decl_list_opt
-    : /* empty */
+    : 
     | type_decl_list_opt type_decl
     ;
 
@@ -150,7 +148,7 @@ modifier
     ;
 
 modifiers_opt
-    : /* empty */
+    : 
     | modifiers_opt modifier
     | modifiers_opt annotation
     ;
@@ -165,7 +163,7 @@ annotation_params_opt
     ;
 
 class_body_decl_list_opt
-    : /* empty */
+    : 
     | class_body_decl_list_opt class_body_decl
     ;
 
@@ -192,7 +190,7 @@ var_declarator
     ;
 
 var_initializer_opt
-    : /*empty*/
+    : 
     | '=' var_initializer
     | '=' qualified_name '(' formal_param_list_without_type_opt ')'
     ;
@@ -268,7 +266,7 @@ enum_const_params
     ;
 
 formal_param_list_opt
-    : /* empty */
+    : 
     | formal_param_list
     | formal_param_list ',' vararg
     | vararg
@@ -298,7 +296,7 @@ formal_param_list_without_type
     ;
 
 formal_param_list_without_type_opt
-    : /* empty */
+    : 
     | formal_param_list_without_type
     ;
 
@@ -314,7 +312,7 @@ type
     ;
 
 types_or_voids
-    : /* empty */
+    : 
     | type_or_void
     | types_or_voids ',' type_or_void
     ;
@@ -400,7 +398,7 @@ block
     ;
 
 block_statements_opt
-    : /* empty */
+    : 
     | block_statements_opt block_statement
     ;
 
@@ -458,18 +456,18 @@ for_control
     ;
 
 for_init_opt   
-    : /* empty */ 
+    : 
     | for_init 
     ;
 
 for_init       
-    : /* empty */
+    : 
     | type var_declarators 
     | var_declarators 
     ;
 
 for_update_opt 
-    : /* empty */ 
+    :  
     | variable T_INC 
     | variable T_DEC 
     | T_INC variable
@@ -497,7 +495,7 @@ expression_list
     ;
 
 expression_opt 
-    : /* empty */ 
+    : 
     | expression 
     ;
 
@@ -605,6 +603,17 @@ void yyerror(const char* s) {
     error_count++;
 }
 
+static void print_deser_report(void) {
+    if (deser_cnt == 0) return;
+
+    printf("\n======= ПРЕДУПРЕЖДЕНИЯ ДЕСЕРИАЛИЗАЦИИ =======\n");
+    for (int i = 0; i < deser_cnt; ++i) {
+        printf("  [строка %d] %s\n", deser_warns[i].line, deser_warns[i].info);
+    }
+    printf("=============================================\n\n");
+}
+
+
 int main(int argc, char** argv) {
     if (argc > 1) {
         yyin = fopen(argv[1], "r");
@@ -616,6 +625,7 @@ int main(int argc, char** argv) {
         yyin = stdin;
     }
     yyparse();
+    print_deser_report();
     printf("Разбор завершен успешно, кол-во ошибок: %d\n", error_count);
     if (yyin != stdin) fclose(yyin);
     return 0;
