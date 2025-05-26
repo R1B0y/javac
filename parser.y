@@ -87,6 +87,7 @@ import_list_opt
 import_decl
     : T_IMPORT qualified_name ';'
     | T_IMPORT qualified_name '.' '*' ';'
+    | T_IMPORT qualified_name '.' T_EXCEPTION ';'
     | error ';' { yyerrok; yyclearin; category = "import_decl"; }
     ;
 
@@ -96,17 +97,32 @@ type_decl_list_opt
     ;
 
 type_decl
-    : class_decl
+    : class_decl 
     | ';'
     ;
 
 class_decl
-    : modifiers_opt T_CLASS T_IDENTIFIER '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_CLASS T_IDENTIFIER '<' types_or_voids '>'  '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_CLASS T_IDENTIFIER T_IMPLEMENTS interfaces '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_CLASS T_IDENTIFIER '<' types_or_voids '>' T_IMPLEMENTS interfaces '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_INTERFACE T_IDENTIFIER '{' class_body_decl_list_opt '}'
-    | modifiers_opt T_INTERFACE T_IDENTIFIER '<' types_or_voids '>'  '{' class_body_decl_list_opt '}'
+    : modifiers_opt T_CLASS T_IDENTIFIER type_parameters_opt '{' class_body_decl_list_opt '}'
+    | modifiers_opt T_CLASS T_IDENTIFIER type_parameters_opt T_EXTENDS reference_type '{' class_body_decl_list_opt '}'
+    | modifiers_opt T_CLASS T_IDENTIFIER type_parameters_opt T_IMPLEMENTS interfaces '{' class_body_decl_list_opt '}'
+    | modifiers_opt T_CLASS T_IDENTIFIER type_parameters_opt T_EXTENDS reference_type T_IMPLEMENTS interfaces '{' class_body_decl_list_opt '}'
+    | modifiers_opt T_INTERFACE T_IDENTIFIER type_parameters_opt '{' class_body_decl_list_opt '}'
+    | modifiers_opt T_INTERFACE T_IDENTIFIER type_parameters_opt T_EXTENDS reference_type '{' class_body_decl_list_opt '}'
+    | modifiers_opt T_ENUM T_IDENTIFIER '{' enum_consts_opt enum_body_decls_opt '}'
+    ;
+
+class_body
+    : '{' class_body_decl_list_opt '}'
+    ;
+
+class_body_opt
+    : 
+    | class_body
+    ;
+
+argument_list_opt
+    : 
+    | expression_list
     ;
 
 interfaces
@@ -116,6 +132,7 @@ interfaces
 
 interface
     : T_IDENTIFIER
+    | T_IDENTIFIER '<' T_IDENTIFIER '>'
     ;
 
 modifier
@@ -135,6 +152,16 @@ modifier
 modifiers_opt
     : /* empty */
     | modifiers_opt modifier
+    | modifiers_opt annotation
+    ;
+
+annotation
+    : '@' qualified_name annotation_params_opt
+    | '@' qualified_name 
+    ;
+
+annotation_params_opt
+    : '(' expression_list ')'
     ;
 
 class_body_decl_list_opt
@@ -144,14 +171,15 @@ class_body_decl_list_opt
 
 class_body_decl
     : method_decl
-    | class_decl
+    | class_decl 
     | field_decl
     | error ';'     { yyerrok; yyclearin; category = "class_body_decl"; }
     | ';'
     ;
 
 field_decl
-    : type var_declarators ';' 
+    : modifiers_opt type var_declarators ';'
+    | type var_declarators ';' 
     ;
 
 var_declarators
@@ -171,32 +199,62 @@ var_initializer_opt
 
 var_initializer
     : expression
+    | initializer
+    ;
+
+initializer
+    : '{' initializer_list initializer_trailing_opt '}'
+    ;
+
+initializer_list
+    : initializer
+    | expression
+    | initializer_list ',' initializer
+    | initializer_list ',' expression
+    ;
+
+initializer_trailing_opt
+    : 
+    | ','
     ;
 
 method_decl
     : modifiers_opt method_header ';'
     | modifiers_opt method_header method_body
-    | type T_IDENTIFIER '(' formal_param_list_opt ')' ';'
-    | type T_IDENTIFIER '(' formal_param_list_opt ')' method_body
-    | T_IDENTIFIER '(' formal_param_list_opt ')' ';'
-    | T_IDENTIFIER '(' formal_param_list_opt ')' method_body
-    | modifiers_opt T_ENUM T_IDENTIFIER '{' method_enum_body '}'
+    | modifiers_opt type T_IDENTIFIER '(' formal_param_list_opt ')' throws_opt method_body
+    | type T_IDENTIFIER '(' formal_param_list_opt ')' throws_opt method_body
+    | T_IDENTIFIER '(' formal_param_list_opt ')' throws_opt method_body
     ;
 
 method_header
-    : type_or_void T_IDENTIFIER '(' formal_param_list_opt ')'
-    | type_or_void T_IDENTIFIER '(' formal_param_list_opt ')' T_THROWS T_EXCEPTION
-    | T_IDENTIFIER '(' formal_param_list_opt ')'
+    : type_or_void T_IDENTIFIER '(' formal_param_list_opt ')' throws_opt
+    | T_IDENTIFIER '(' formal_param_list_opt ')' throws_opt
     ;
 
-method_enum_body
-    : enum_consts ';' class_body_decl_list_opt 
-    | ';'
+throws_opt
+    : 
+    | T_THROWS exception_list
+    ;
+
+exception_list
+    : T_EXCEPTION
+    | exception_list ',' T_EXCEPTION
+    | exception_list '|' T_EXCEPTION
+    ;
+
+enum_body_decls_opt
+    : 
+    | ';' class_body_decl_list_opt 
+    ;
+
+enum_consts_opt
+    :
+    | enum_consts
     ;
 
 enum_consts
-    : enum_const
-    | enum_consts ',' enum_const
+    : enum_consts ',' enum_const
+    | enum_const
     ;
 
 enum_const
@@ -212,6 +270,8 @@ enum_const_params
 formal_param_list_opt
     : /* empty */
     | formal_param_list
+    | formal_param_list ',' vararg
+    | vararg
     ;
 
 formal_param_list
@@ -221,6 +281,10 @@ formal_param_list
 
 formal_param
     : type T_IDENTIFIER
+    ;
+
+vararg
+    : type T_ELLIPSIS T_IDENTIFIER
     ;
 
 formal_param_without_type
@@ -239,7 +303,7 @@ formal_param_list_without_type_opt
     ;
 
 type_or_void
-    : type
+    : type_arg
     | T_VOID
     ;
 
@@ -247,7 +311,6 @@ type
     : reference_type
     | primitive_type
     | type_arr
-    | T_IDENTIFIER '<' types_or_voids '>'
     ;
 
 types_or_voids
@@ -262,15 +325,55 @@ type_arr
     | type_arr '[' ']'
     ;
 
+type_args_opt
+    : 
+    | '<' '>'
+    | '<' type_arg_list '>'
+    | '<' T_EXCEPTION '>'
+    ;
+
+type_arg_list
+    : type_arg
+    | type_arg_list ',' type_arg
+    ;
+
+type_arg
+    : type
+    | '?'
+    | '?' T_EXTENDS type
+    | '?' T_SUPER type
+    ;
+
+type_parameters_opt
+    :
+    | '<' type_parameter_list '>'
+    ;
+
+type_parameter_list
+    : type_parameter
+    | type_parameter_list ',' type_parameter
+
+type_parameter
+    : T_IDENTIFIER type_bound_opt
+    ;
+
+type_bound_opt
+    :
+    | T_EXTENDS bound
+    ;
+
+bound
+    : reference_type
+    | bound '&' reference_type
+    ;
+
 reference_type
-    : qualified_name   { $$ = $1; }
+    : qualified_name type_args_opt
     ;
 
 qualified_name
-    : T_IDENTIFIER                       { $$ = $1; }
-    | elem_array
-    | qualified_name '.' T_IDENTIFIER    { /* concat if desired */ }
-    | qualified_name '.' elem_array
+    : T_IDENTIFIER 
+    | qualified_name '.' T_IDENTIFIER 
     | T_THIS '.' qualified_name
     | T_THIS
     ;
@@ -289,7 +392,6 @@ primitive_type
 
 method_body
     : block
-    | ';'
     ;
 
 block
@@ -309,25 +411,34 @@ block_statement
 
 local_var_decl_statement
     : type var_declarators ';'
-    | statement
     | error ';' { yyerrok; yyclearin; category = "local_var_decl_statement"; }
     ;
 
 statement
-    : '{' block_statements_opt '}'
+    : expression ';'
+    | T_IDENTIFIER ':' statement
+    | '{' block_statements_opt '}'
     | T_IF '(' expression ')' block %prec LOWER_THAN_ELSE
     | T_IF '(' expression ')' block T_ELSE block
-    | T_FOR '(' type qualified_name ':' T_IDENTIFIER ')' block
-    | T_FOR '(' for_init_opt ';' expression_opt ';' for_update_opt ')' block
+    | T_FOR '(' for_control ')' block
     | T_WHILE '(' expression ')' block
     | T_RETURN expression_opt ';'
     | T_CONTINUE ';'
+    | T_BREAK ';'
+    | T_BREAK T_IDENTIFIER ';'
     | qualified_name var_initializer_opt ';'
     | qualified_name '(' formal_param_list_without_type_opt ')'
     | type qualified_name '=' qualified_name '(' formal_param_list_without_type_opt ')'
-    | T_SWITCH '(' expression ')' '{' cases default_for_switch '}'
+    | qualified_name T_PLUSEQ expression ';'
+    | qualified_name T_MINUSEQ expression ';'
+    | T_SWITCH '(' expression ')' switch_block
     | T_TRY block T_CATCH '(' exceptions T_IDENTIFIER ')' block
+    | T_TRY block T_FINALLY block
     | T_TRY block T_CATCH '(' exceptions T_IDENTIFIER ')' block T_FINALLY block
+    | T_TRY '(' resource_spec ')' block
+    | T_TRY '(' resource_spec ')' block T_CATCH '(' exceptions T_IDENTIFIER ')' block
+    | T_TRY '(' resource_spec ')' block T_FINALLY block
+    | T_TRY '(' resource_spec ')' block T_CATCH '(' exceptions T_IDENTIFIER ')' block T_FINALLY block
     | T_THROW T_NEW T_EXCEPTION '(' T_TEXT_STRING ')' ';'
     | variable T_INC ';'
     | variable T_DEC ';'
@@ -337,6 +448,15 @@ statement
     | ';'
     ;
 
+resource_spec
+    : type var_declarators
+    ;
+
+for_control
+    : type T_IDENTIFIER ':' expression
+    | for_init_opt ';' expression_opt ';' for_update_opt
+    ;
+
 for_init_opt   
     : /* empty */ 
     | for_init 
@@ -344,31 +464,31 @@ for_init_opt
 
 for_init       
     : /* empty */
-    | type var_declarators
+    | type var_declarators 
     | var_declarators 
     ;
 
 for_update_opt 
     : /* empty */ 
-    | variable T_INC
-    | variable T_DEC
+    | variable T_INC 
+    | variable T_DEC 
     | T_INC variable
     | T_DEC variable
-    | qualified_name var_initializer_opt
+    | qualified_name var_initializer_opt 
     ;
 
-case
-    : T_CASE expression ':' block_statements_opt T_BREAK ';'
-    | T_CASE expression ':'
+switch_block
+    : '{' switch_block_statements '}'
     ;
 
-cases
-    : /* empty */
-    | cases case
+switch_block_statements
+    : 
+    | switch_block_statements switch_block_statement
     ;
 
-default_for_switch
-    : T_DEFAULT ':' block_statements_opt
+switch_block_statement
+    : T_CASE expression ':' block_statements_opt
+    | T_DEFAULT ':' block_statements_opt
     ;
 
 expression_list
@@ -382,7 +502,9 @@ expression_opt
     ;
 
 expression
-    : primary
+    : lambda_expression
+    | postfix_expr
+    | T_NEW postfix_expr
     | expression '+' expression
     | expression '-' expression
     | expression '*' expression
@@ -399,19 +521,13 @@ expression
     | '(' type ')' expression
     | '-' expression %prec '!'
     | '!' expression %prec '!'
-    | T_NEW type '(' primary ')'
-    | T_NEW type '(' ')'
+    | T_NEW type '(' argument_list_opt ')' class_body_opt
+    | T_NEW T_EXCEPTION '(' argument_list_opt ')' 
     | T_TEXT_STRING 
     ;
 
 variable
-    : T_IDENTIFIER
-    | qualified_name
-    ;
-
-elem_array
-    : T_IDENTIFIER '[' T_INT_LITERAL ']'
-    | elem_array '[' T_INT_LITERAL ']'
+    : qualified_name 
     ;
 
 primary
@@ -422,11 +538,51 @@ primary
     | T_TRUE
     | T_FALSE
     | T_NULL_LITERAL
-    | T_IDENTIFIER
     | T_TEXT_STRING
     | qualified_name
     | qualified_name '(' formal_param_list_without_type_opt ')'
     | '(' expression ')'
+    ;
+
+postfix_suffix
+    : '.' T_IDENTIFIER
+    | '.' T_IDENTIFIER '(' formal_param_list_without_type_opt ')'
+    | T_COLONCOLON T_IDENTIFIER
+    | '[' expression ']' 
+    ;
+
+postfix_suffixes
+    : 
+    | postfix_suffixes postfix_suffix
+    ;
+
+postfix_expr
+    : primary postfix_suffixes
+    ;
+
+lambda_params
+    : T_IDENTIFIER
+    | '(' ')'
+    | '(' lambda_param_list ')'
+    ;
+
+lambda_param_list
+    : lambda_param 
+    | lambda_param_list ',' lambda_param
+    ;
+
+lambda_param
+    : T_IDENTIFIER
+    | type T_IDENTIFIER
+    ;
+
+lambda_body
+    : expression 
+    | block
+    ;
+
+lambda_expression
+    : lambda_params T_LAMBDA lambda_body
     ;
 
 exception

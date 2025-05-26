@@ -30,11 +30,6 @@ public class LargeTest implements Runnable, Comparable<LargeTest>, Closeable {
     private static final String VERSION = "1.0.0";
     private static final Map<String, Integer> STATIC_CACHE = new HashMap<>();
 
-    static {
-        STATIC_CACHE.put("init", 42);
-        System.out.println("Static init block executed at " + LocalDateTime.now());
-    }
-
     /* ---------- Instance fields ---------- */
     private final int id;
     private String name;
@@ -52,13 +47,13 @@ public class LargeTest implements Runnable, Comparable<LargeTest>, Closeable {
     }
 
     /* ---------- Factory method with generics ---------- */
-    public static <T extends Number> List<T> repeat(T value, int count) {
-        List<T> list = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            list.add(value);
-        }
-        return Collections.unmodifiableList(list);
-    }
+    // public static <T extends Number> List<T> repeat(T value, int count) {
+    //     List<T> list = new ArrayList<>();
+    //     for (int i = 0; i < count; i++) {
+    //         list.add(value);
+    //     }
+    //     return Collections.unmodifiableList(list);
+    // }
 
     /* ---------- Overloaded add methods ---------- */
     public void add(double v) { values.add(v); }
