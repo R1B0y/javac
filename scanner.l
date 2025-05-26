@@ -172,6 +172,7 @@ char_char    ([^'\\\n]|\\.)
 "readResolve"             { add_deser_warn("Вызов readResolve()", line_num); RETURN_STR(T_IDENTIFIER); }
 "fromXML"                 { add_deser_warn("Вызов XStream#fromXML()", line_num); RETURN_STR(T_IDENTIFIER); }
 "enableDefaultTyping"     { add_deser_warn("ObjectMapper.enableDefaultTyping()", line_num); RETURN_STR(T_IDENTIFIER); }
+"Serializable"            { add_deser_warn("Реализация Serializable", line_num); RETURN_STR(T_IDENTIFIER); }
 {idstart}{idpart}*            { RETURN_STR(T_IDENTIFIER); }
 
 {hex_int_lit}{int_suffix}?    { RETURN_STR(T_INT_LITERAL); }
